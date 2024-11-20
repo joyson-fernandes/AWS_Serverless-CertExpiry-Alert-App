@@ -1,0 +1,42 @@
+name: Deploy Static Website and Lambda Function
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  deploy_website:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        
+      - name: Set up AWS CLI
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Deploy Website Beta
+        run: |
+          set -e  # Exit on any command failure
+          aws s3 cp index.html s3://cert-expiry-alert/ --acl public-read
+
+      - name: Install zip tool
+        uses: montudor/action-zip@v1
+        
+      - name: Create Zip file for Lambda function
+        run: |
+          set -e
+          zip -r code.zip src/lambda_function.py/*  # Specify files needed
+
+      - name: Update Lambda Function
+        run: |
+          set -e
+          aws lambda update-function-code \
+            --function-name arn:aws:lambda:us-east-1:061051257340:function:api_certification \
+            --zip-file fileb://code.zip
