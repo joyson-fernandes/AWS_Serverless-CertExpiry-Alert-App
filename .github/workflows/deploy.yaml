@@ -21,17 +21,10 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - name: Deploy Website Beta
-        if: ${{ github.event_name == 'pull_request' && (!github.event.pull_request.merged || github.event.pull_request.base.ref != 'main') }}
+      - name: Deploy Website
         run: |
           set -e  # Exit on any command failure
-          aws s3 cp index.html s3://cert-expiry-alert-beta/ --acl public-read
-
-      - name: Deploy Website Prod
-        if: (github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main') || (github.event_name == 'push' && github.ref == 'refs/heads/main')
-        run: |
-            set -e  # Exit on any command failure
-            aws s3 cp index.html s3://cert-expiry-alert/ --acl public-read    
+          aws s3 cp index.html s3://cert-expiry-alert/ --acl public-read
 
       - name: Install zip tool
         uses: montudor/action-zip@v1
