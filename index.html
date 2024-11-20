@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certificate Management</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        input, button {
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Certificate Management System</h1>
+
+<!-- Status Check -->
+<h3>Service Status:</h3>
+<button onclick="checkStatus()">Check Status</button>
+<p id="statusMessage"></p>
+
+<!-- Get Certificate -->
+<h3>Get Certificate:</h3>
+<input type="text" id="certNameToGet" placeholder="Certificate Name" />
+<button onclick="getCertificate()">Get Certificate</button>
+<p id="certificateResult"></p>
+
+<!-- Add Certificate -->
+<h3>Add Certificate:</h3>
+<input type="text" id="certNameToAdd" placeholder="Certificate Name" />
+<input type="date" id="issueDate" placeholder="Issue Date" />
+<input type="date" id="expireDate" placeholder="Expire Date" />
+<button onclick="addCertificate()">Add Certificate</button>
+<p id="addResult"></p>
+
+<!-- Update Certificate -->
+<h3>Update Certificate:</h3>
+<input type="text" id="certNameToUpdate" placeholder="Certificate Name" />
+<input type="text" id="updateKey" placeholder="Field to Update" />
+<input type="text" id="updateValue" placeholder="New Value" />
+<button onclick="updateCertificate()">Update Certificate</button>
+<p id="updateResult"></p>
+
+<!-- Delete Certificate -->
+<h3>Delete Certificate:</h3>
+<input type="text" id="certNameToDelete" placeholder="Certificate Name" />
+<button onclick="deleteCertificate()">Delete Certificate</button>
+<p id="deleteResult"></p>
+
+<script>
+    const apiUrl = 'https://4xbet89sxl.execute-api.us-east-1.amazonaws.com/production'; // Replace with your API Gateway URL
+
+    async function checkStatus() {
+        try {
+            const response = await fetch(`${apiUrl}/status`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const message = await response.text();
+            document.getElementById('statusMessage').innerText = message;
+        } catch (error) {
+            document.getElementById('statusMessage').innerText = `Error: ${error.message}`;
+        }
+    }
+
+    async function getCertificate() {
+    const certName = document.getElementById('certNameToGet').value.trim();
+    console.log('Fetching certificate for:', certName); // Debugging log
+    try {
+        const response = await fetch(`${apiUrl}/certificate?certname=${certName}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        // Modify the below check according to the response structure
+        if (data && data.certname) {
+            // Display the fetched certificate data
+            document.getElementById('certificateResult').innerText = JSON.stringify(data, null, 2);
+        } else {
+            document.getElementById('certificateResult').innerText = 'Certificate not found.';
+        }
+    } catch (error) {
+        document.getElementById('certificateResult').innerText = `Error: ${error.message}`;
+    }
+}
+
+
+
+    async function addCertificate() {
+    const requestBody = {
+        certname: document.getElementById('certNameToAdd').value.trim(),
+        issueDate: document.getElementById('issueDate').value,
+        expireDate: document.getElementById('expireDate').value
+    };
+
+    try {
+        const response = await fetch(`${apiUrl}/certificate`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestBody)
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        // Check if the expected structure exists in the response
+        if (data && data.Item) {
+            const resultInfo = `
+                Operation: ${data.Operation} <br />
+                Message: ${data.Message} <br />
+                Added Certificate: <br />
+                Name: ${data.Item.certname} <br />
+                Issue Date: ${data.Item.issueDate} <br />
+                Expire Date: ${data.Item.expireDate}
+            `;
+            document.getElementById('addResult').innerHTML = resultInfo;
+        } else {
+            document.getElementById('addResult').innerText = 'Failed to add certificate or unexpected response structure.';
+        }
+    } catch (error) {
+        document.getElementById('addResult').innerText = `Error: ${error.message}`;
+    }
+}
+
+
+    async function updateCertificate() {
+    const certName = document.getElementById('certNameToUpdate').value.trim();
+    const updateKey = document.getElementById('updateKey').value.trim();
+    const updateValue = document.getElementById('updateValue').value.trim();
+
+    // Basic validation
+    if (!certName || !updateKey || !updateValue) {
+        document.getElementById('updateResult').innerText = 'All fields must be filled.';
+        return;
+    }
+
+    const requestData = {
+        certname: certName,
+        updateKey: updateKey,
+        updateValue: updateValue
+    };
+
+    try {
+        const response = await fetch(`${apiUrl}/certificate`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestData)
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        // Check if the expected structure exists in the response
+        if (data && data.Operation === "UPDATE") {
+            const updatedAttributes = data.UpdatedAttributes || {}; // Safely access 'UpdatedAttributes'
+            const resultInfo = `
+                Operation: ${data.Operation} <br />
+                Message: ${data.Message} <br />
+                Updated Attributes: <br />
+                ${updateKey}: ${updatedAttributes[updateKey] || 'N/A'} <!-- Display updated value -->
+            `;
+            document.getElementById('updateResult').innerHTML = resultInfo;
+        } else {
+            document.getElementById('updateResult').innerText = 'Failed to update certificate or unexpected response structure.';
+        }
+    } catch (error) {
+        document.getElementById('updateResult').innerText = `Error: ${error.message}`;
+    }
+}
+
+
+async function deleteCertificate() {
+    const certName = document.getElementById('certNameToDelete').value.trim();
+
+    // Basic validation
+    if (!certName) {
+        document.getElementById('deleteResult').innerText = 'Certificate Name must be provided.';
+        return;
+    }
+
+    try {
+        const response = await fetch(`${apiUrl}/certificate`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ certname: certName }) // Include certname in the request body
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        // Check the expected structure in the response
+        if (data && data.Operation === "DELETE") {
+            const resultInfo = `
+                Operation: ${data.Operation} <br />
+                Message: ${data.Message} <br />
+                Deleted Item: ${data.Item ? JSON.stringify(data.Item, null, 2) : 'No Item returned.'} <!-- Display the item or null -->
+            `;
+            document.getElementById('deleteResult').innerHTML = resultInfo; // Display the result
+        } else {
+            document.getElementById('deleteResult').innerText = 'Failed to delete certificate or unexpected response structure.';
+        }
+    } catch (error) {
+        document.getElementById('deleteResult').innerText = `Error: ${error.message}`;
+    }
+}
+
+
+</script>
+
+</body>
+</html>
+		
