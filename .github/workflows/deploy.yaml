@@ -32,7 +32,7 @@ jobs:
       - name: Create Zip file for Lambda function
         run: |
           set -e
-          zip -r code.zip src/lambda_function.py  # Specify files needed
+          zip -r code.zip lambda_function.py  # Specify files needed
 
       - name: Update Lambda Function
         run: |
